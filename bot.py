@@ -15,18 +15,23 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 
 # ==========================================
-# КАНАЛҲО БАРОИ ПОДПИСКА
+# КАНАЛҲОИ ОБУНА
 # ==========================================
-#
-# Мисол:
-# "@mychannel"
-#
-# Бот бояд дар канал Administrator бошад.
-#
 
 CHANNELS = [
-    "https://t.me/khamai_bozikho"
+    "@khamai_bozikhoi_mod"
 ]
+
+# Мисол:
+# CHANNELS = [
+#     "@my_channel"
+# ]
+
+# Агар 2 канал дошта бошӣ:
+# CHANNELS = [
+#     "@channel_one",
+#     "@channel_two"
+# ]
 
 
 # ==========================================
@@ -82,20 +87,19 @@ games = [
 # ==========================================
 
 def is_subscribed(user_id):
-    """
-    Санҷиш мекунад, ки корбар ба ҳамаи каналҳо
-    подписка кардааст ё не.
-    """
 
     for channel in CHANNELS:
 
         try:
             member = bot.get_chat_member(
-                chat_id=channel,
-                user_id=user_id
+                channel,
+                user_id
             )
 
-            if member.status in ["left", "kicked"]:
+            if member.status in [
+                "left",
+                "kicked"
+            ]:
                 return False
 
         except Exception as error:
@@ -139,27 +143,7 @@ def subscription_keyboard():
 
 
 # ==========================================
-# ПАЁМИ ПОДПИСКА
-# ==========================================
-
-def subscription_message(chat_id):
-
-    bot.send_message(
-        chat_id,
-
-        "🔒 <b>Дастрасӣ маҳдуд аст!</b>\n\n"
-        "Барои истифодаи бот аввал ба канали мо "
-        "подписка кунед.\n\n"
-        "1️⃣ Ба канал дароед\n"
-        "2️⃣ Subscribe / Подписаться-ро пахш кунед\n"
-        "3️⃣ Баъд «✅ Ман подписка кардам»-ро пахш кунед",
-
-        reply_markup=subscription_keyboard()
-    )
-
-
-# ==========================================
-# САНҶИШ ПЕШ АЗ ИСТИФОДА
+# ТАЛАБИ ПОДПИСКА
 # ==========================================
 
 def require_subscription(message):
@@ -167,7 +151,17 @@ def require_subscription(message):
     if is_subscribed(message.from_user.id):
         return True
 
-    subscription_message(message.chat.id)
+    bot.send_message(
+        message.chat.id,
+
+        "🔒 <b>Аввал подписка кунед!</b>\n\n"
+        "Барои истифодаи Game Bot аввал ба "
+        "канали мо подписка кунед.\n\n"
+        "Пас аз подписка тугмаи "
+        "«✅ Ман подписка кардам»-ро пахш кунед.",
+
+        reply_markup=subscription_keyboard()
+    )
 
     return False
 
@@ -191,31 +185,28 @@ def main_menu():
 
 
 # ==========================================
-# START
+# /START
 # ==========================================
 
 @bot.message_handler(commands=["start"])
 def start(message):
 
-    if not is_subscribed(message.from_user.id):
-
-        subscription_message(message.chat.id)
-
+    if not require_subscription(message):
         return
 
     bot.send_message(
         message.chat.id,
 
-        "🎮 <b>Салом!</b>\n\n"
-        "Ба Game Bot хуш омадед!\n\n"
-        "Бозиро метавонед бо рақам ё ном ҷустуҷӯ кунед.",
+        "🎮 <b>Хуш омадед!</b>\n\n"
+        "Подписка тасдиқ шуд. ✅\n\n"
+        "Акнун метавонед бозиҳоро ҷустуҷӯ кунед.",
 
         reply_markup=main_menu()
     )
 
 
 # ==========================================
-# CALLBACK: САНҶИШИ ПОДПИСКА
+# ТУГМАИ "МАН ПОДПИСКА КАРДАМ"
 # ==========================================
 
 @bot.callback_query_handler(
@@ -236,7 +227,7 @@ def check_subscription(call):
             call.message.chat.id,
 
             "🎉 <b>Подписка тасдиқ шуд!</b>\n\n"
-            "Акнун бот барои шумо кушода аст.",
+            "Акнун ҳамаи бозиҳо барои шумо дастрасанд.",
 
             reply_markup=main_menu()
         )
@@ -245,7 +236,9 @@ def check_subscription(call):
 
         bot.answer_callback_query(
             call.id,
-            "❌ Аввал ба канал подписка кунед.",
+
+            "❌ Шумо ҳанӯз подписка накардаед!",
+
             show_alert=True
         )
 
@@ -256,10 +249,11 @@ def check_subscription(call):
 
 @bot.message_handler(
     func=lambda message:
-        message.text == "🎮 Ҳамаи бозиҳо"
+    message.text == "🎮 Ҳамаи бозиҳо"
 )
 def all_games(message):
 
+    # Аввал подпискаро месанҷем
     if not require_subscription(message):
         return
 
@@ -273,8 +267,7 @@ def all_games(message):
         )
 
     text += (
-        "\n🔢 Рақами бозиро нависед.\n"
-        "🔎 Ё номи бозиро ҷустуҷӯ кунед."
+        "\n🔢 Рақами бозиро нависед."
     )
 
     bot.send_message(
@@ -285,12 +278,12 @@ def all_games(message):
 
 
 # ==========================================
-# ТУГМАИ ҶУСТУҶӮ
+# ҶУСТУҶӮ
 # ==========================================
 
 @bot.message_handler(
     func=lambda message:
-        message.text == "🔎 Ҷустуҷӯи бозӣ"
+    message.text == "🔎 Ҷустуҷӯи бозӣ"
 )
 def search_help(message):
 
@@ -316,6 +309,7 @@ def search_help(message):
 @bot.message_handler(func=lambda message: True)
 def find_game(message):
 
+    # Бе подписка ҷустуҷӯ иҷозат нест
     if not require_subscription(message):
         return
 
@@ -339,9 +333,7 @@ def find_game(message):
                 f"🎮 <b>{number}. {name}</b>\n\n"
                 f"🔗 <a href=\"{link}\">"
                 f"Кушодани бозӣ"
-                f"</a>",
-
-                disable_web_page_preview=False
+                f"</a>"
             )
 
         else:
@@ -349,8 +341,7 @@ def find_game(message):
             bot.send_message(
                 message.chat.id,
 
-                f"❌ Бозии рақами <b>{number}</b> вуҷуд надорад.\n\n"
-                f"Дар ҳозир бот {len(games)} бозӣ дорад."
+                "❌ Ин рақами бозӣ вуҷуд надорад."
             )
 
         return
@@ -396,20 +387,15 @@ def find_game(message):
             message.chat.id,
 
             "❌ <b>Бозӣ ёфт нашуд.</b>\n\n"
-            "Номи бозиро дуруст нависед ё "
-            "«🎮 Ҳамаи бозиҳо»-ро пахш кунед."
+            "Номи бозиро дуруст нависед."
         )
 
 
 # ==========================================
-# BOT START
+# START BOT
 # ==========================================
 
-print("===================================")
 print("🤖 Telegram Game Bot started!")
-print(f"🎮 Games: {len(games)}")
-print(f"📢 Channels: {len(CHANNELS)}")
-print("===================================")
 
 bot.infinity_polling(
     timeout=60,
