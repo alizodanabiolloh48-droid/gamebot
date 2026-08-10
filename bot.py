@@ -20,16 +20,11 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 # КАНАЛ
 # ==========================================
 
-CHANNEL_USERNAME = "YOUR_CHANNEL"
-
-# Мисол:
-# CHANNEL_USERNAME = "mygameschannel"
+CHANNEL_USERNAME = "khamai_bozikho"
 
 CHANNEL = f"@{CHANNEL_USERNAME}"
 
-# Линки канал барои тугма
 CHANNEL_LINK = f"https://t.me/{CHANNEL_USERNAME}"
-
 
 # ==========================================
 # DATABASE
