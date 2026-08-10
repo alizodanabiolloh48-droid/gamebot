@@ -1,4 +1,6 @@
 import os
+import json
+import re
 import telebot
 from telebot import types
 
@@ -15,71 +17,70 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 
 # ==========================================
-# КАНАЛҲОИ ОБУНА
+# КАНАЛ
 # ==========================================
 
-CHANNELS = [
-    "@khamai_bozikho"
-]
+CHANNEL_USERNAME = "YOUR_CHANNEL"
 
 # Мисол:
-# CHANNELS = [
-#     "@my_channel"
-# ]
+# CHANNEL_USERNAME = "mygameschannel"
 
-# Агар 2 канал дошта бошӣ:
-# CHANNELS = [
-#     "@channel_one",
-#     "@channel_two"
-# ]
+CHANNEL = f"@{CHANNEL_USERNAME}"
+
+# Линки канал барои тугма
+CHANNEL_LINK = f"https://t.me/{CHANNEL_USERNAME}"
+
+
+# ==========================================
+# DATABASE
+# ==========================================
+
+DATABASE_FILE = "games.json"
+
+
+def load_games():
+    try:
+        with open(
+            DATABASE_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            data = json.load(file)
+
+            if not isinstance(data, list):
+                return []
+
+            return data
+
+    except FileNotFoundError:
+        return []
+
+    except json.JSONDecodeError:
+        print("games.json хатои JSON дорад.")
+        return []
+
+
+def save_games(games):
+    with open(
+        DATABASE_FILE,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            games,
+            file,
+            ensure_ascii=False,
+            indent=2
+        )
 
 
 # ==========================================
 # БОЗИҲО
 # ==========================================
 
-games = [
-    (
-        "Minecraft",
-        "https://play.google.com/store/search?q=Minecraft&c=apps"
-    ),
-    (
-        "Roblox",
-        "https://play.google.com/store/search?q=Roblox&c=apps"
-    ),
-    (
-        "Free Fire",
-        "https://play.google.com/store/search?q=Free%20Fire&c=apps"
-    ),
-    (
-        "PUBG Mobile",
-        "https://play.google.com/store/search?q=PUBG%20Mobile&c=apps"
-    ),
-    (
-        "Brawl Stars",
-        "https://play.google.com/store/search?q=Brawl%20Stars&c=apps"
-    ),
-    (
-        "Clash of Clans",
-        "https://play.google.com/store/search?q=Clash%20of%20Clans&c=apps"
-    ),
-    (
-        "Clash Royale",
-        "https://play.google.com/store/search?q=Clash%20Royale&c=apps"
-    ),
-    (
-        "Subway Surfers",
-        "https://play.google.com/store/search?q=Subway%20Surfers&c=apps"
-    ),
-    (
-        "Hill Climb Racing",
-        "https://play.google.com/store/search?q=Hill%20Climb%20Racing&c=apps"
-    ),
-    (
-        "Asphalt 9",
-        "https://play.google.com/store/search?q=Asphalt%209&c=apps"
-    ),
-]
+games = load_games()
 
 
 # ==========================================
@@ -88,49 +89,43 @@ games = [
 
 def is_subscribed(user_id):
 
-    for channel in CHANNELS:
+    try:
 
-        try:
-            member = bot.get_chat_member(
-                channel,
-                user_id
-            )
+        member = bot.get_chat_member(
+            CHANNEL,
+            user_id
+        )
 
-            if member.status in [
-                "left",
-                "kicked"
-            ]:
-                return False
+        return member.status in (
+            "member",
+            "administrator",
+            "creator"
+        )
 
-        except Exception as error:
+    except Exception as error:
 
-            print(
-                f"Subscription check error for {channel}: {error}"
-            )
+        print(
+            "Subscription check error:",
+            error
+        )
 
-            return False
-
-    return True
+        return False
 
 
 # ==========================================
-# КЛАВИАТУРАИ ПОДПИСКА
+# ПОДПИСКА КЛАВИАТУРА
 # ==========================================
 
 def subscription_keyboard():
 
     keyboard = types.InlineKeyboardMarkup()
 
-    for number, channel in enumerate(CHANNELS, 1):
-
-        username = channel.replace("@", "")
-
-        keyboard.add(
-            types.InlineKeyboardButton(
-                text=f"📢 Канал {number}",
-                url=f"https://t.me/{username}"
-            )
+    keyboard.add(
+        types.InlineKeyboardButton(
+            text="📢 Ба канал даромадан",
+            url=CHANNEL_LINK
         )
+    )
 
     keyboard.add(
         types.InlineKeyboardButton(
@@ -148,7 +143,9 @@ def subscription_keyboard():
 
 def require_subscription(message):
 
-    if is_subscribed(message.from_user.id):
+    if is_subscribed(
+        message.from_user.id
+    ):
         return True
 
     bot.send_message(
@@ -157,7 +154,9 @@ def require_subscription(message):
         "🔒 <b>Аввал подписка кунед!</b>\n\n"
         "Барои истифодаи Game Bot аввал ба "
         "канали мо подписка кунед.\n\n"
-        "Пас аз подписка тугмаи "
+        "1️⃣ Ба канал дароед.\n"
+        "2️⃣ Подписка кунед.\n"
+        "3️⃣ Баъд тугмаи "
         "«✅ Ман подписка кардам»-ро пахш кунед.",
 
         reply_markup=subscription_keyboard()
@@ -206,17 +205,18 @@ def start(message):
 
 
 # ==========================================
-# ТУГМАИ "МАН ПОДПИСКА КАРДАМ"
+# CHECK SUBSCRIPTION
 # ==========================================
 
 @bot.callback_query_handler(
-    func=lambda call: call.data == "check_subscription"
+    func=lambda call:
+    call.data == "check_subscription"
 )
 def check_subscription(call):
 
-    user_id = call.from_user.id
-
-    if is_subscribed(user_id):
+    if is_subscribed(
+        call.from_user.id
+    ):
 
         bot.answer_callback_query(
             call.id,
@@ -227,7 +227,7 @@ def check_subscription(call):
             call.message.chat.id,
 
             "🎉 <b>Подписка тасдиқ шуд!</b>\n\n"
-            "Акнун ҳамаи бозиҳо барои шумо дастрасанд.",
+            "Акнун ҳамаи бозиҳо дастрасанд.",
 
             reply_markup=main_menu()
         )
@@ -236,9 +236,7 @@ def check_subscription(call):
 
         bot.answer_callback_query(
             call.id,
-
-            "❌ Шумо ҳанӯз подписка накардаед!",
-
+            "❌ Аввал ба канал подписка кунед!",
             show_alert=True
         )
 
@@ -253,22 +251,34 @@ def check_subscription(call):
 )
 def all_games(message):
 
-    # Аввал подпискаро месанҷем
     if not require_subscription(message):
+        return
+
+    games = load_games()
+
+    if not games:
+
+        bot.send_message(
+            message.chat.id,
+            "📭 Ҳоло ягон бозӣ илова нашудааст."
+        )
+
         return
 
     text = "🎮 <b>Рӯйхати бозиҳо:</b>\n\n"
 
-    for number, (name, link) in enumerate(games, 1):
+    for number, game in enumerate(
+        games,
+        1
+    ):
+
+        name = game["name"]
+        link = game["link"]
 
         text += (
             f"<b>{number}.</b> "
             f"<a href=\"{link}\">{name}</a>\n"
         )
-
-    text += (
-        "\n🔢 Рақами бозиро нависед."
-    )
 
     bot.send_message(
         message.chat.id,
@@ -297,7 +307,6 @@ def search_help(message):
         "Номи бозӣ ё рақами онро нависед.\n\n"
         "Мисол:\n"
         "Minecraft\n"
-        "Roblox\n"
         "5"
     )
 
@@ -309,15 +318,16 @@ def search_help(message):
 @bot.message_handler(func=lambda message: True)
 def find_game(message):
 
-    # Бе подписка ҷустуҷӯ иҷозат нест
     if not require_subscription(message):
         return
 
     query = message.text.strip().lower()
 
-    # ======================================
-    # ҶУСТУҶӮ БО РАҚАМ
-    # ======================================
+    games = load_games()
+
+    # --------------------------------------
+    # РАҚАМ
+    # --------------------------------------
 
     if query.isdigit():
 
@@ -325,7 +335,10 @@ def find_game(message):
 
         if 1 <= number <= len(games):
 
-            name, link = games[number - 1]
+            game = games[number - 1]
+
+            name = game["name"]
+            link = game["link"]
 
             bot.send_message(
                 message.chat.id,
@@ -340,33 +353,38 @@ def find_game(message):
 
             bot.send_message(
                 message.chat.id,
-
                 "❌ Ин рақами бозӣ вуҷуд надорад."
             )
 
         return
 
-    # ======================================
-    # ҶУСТУҶӮ БО НОМ
-    # ======================================
+    # --------------------------------------
+    # НОМ
+    # --------------------------------------
 
     found = []
 
-    for number, (name, link) in enumerate(games, 1):
+    for number, game in enumerate(
+        games,
+        1
+    ):
+
+        name = game["name"]
+        link = game["link"]
 
         if query in name.lower():
 
             found.append(
-                (number, name, link)
+                (
+                    number,
+                    name,
+                    link
+                )
             )
-
-    # ======================================
-    # НАТИҶА
-    # ======================================
 
     if found:
 
-        text = "🔎 <b>Бозиҳои ёфтшуда:</b>\n\n"
+        text = "🔎 <b>Натиҷа:</b>\n\n"
 
         for number, name, link in found:
 
@@ -385,17 +403,168 @@ def find_game(message):
 
         bot.send_message(
             message.chat.id,
-
-            "❌ <b>Бозӣ ёфт нашуд.</b>\n\n"
-            "Номи бозиро дуруст нависед."
+            "❌ Бозӣ ёфт нашуд."
         )
+
+
+# ==========================================
+# ГИРИФТАНИ БОЗӢ АЗ КАНАЛ
+# ==========================================
+
+def add_game_from_channel(
+    message
+):
+
+    global games
+
+    # Танҳо аз канали муайян
+    if message.chat.username:
+
+        if (
+            message.chat.username.lower()
+            != CHANNEL_USERNAME.lower()
+        ):
+            return
+
+    else:
+        return
+
+    text = message.text or message.caption or ""
+
+    if not text:
+        return
+
+    # --------------------------------------
+    # ҶУСТУҶӮИ LINK
+    # --------------------------------------
+
+    url_pattern = r"https?://\S+"
+
+    links = re.findall(
+        url_pattern,
+        text
+    )
+
+    if not links:
+        print(
+            "Дар пости канал link ёфт нашуд."
+        )
+        return
+
+    link = links[0].rstrip(
+        ".,!?)]}>"
+    )
+
+    # --------------------------------------
+    # ГИРИФТАНИ НОМ
+    # --------------------------------------
+
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    name = None
+
+    for line in lines:
+
+        if (
+            line.startswith("http://")
+            or line.startswith("https://")
+        ):
+            continue
+
+        clean = re.sub(
+            r"^[🎮🕹️📱🔥⭐️\s]+",
+            "",
+            line
+        ).strip()
+
+        clean = re.sub(
+            r"^(game|бозӣ)\s*[:\-]?\s*",
+            "",
+            clean,
+            flags=re.IGNORECASE
+        )
+
+        if clean:
+            name = clean
+            break
+
+    if not name:
+        print(
+            "Номи бозӣ ёфт нашуд."
+        )
+        return
+
+    # --------------------------------------
+    # ДУБОРА НАБОШАД
+    # --------------------------------------
+
+    for game in games:
+
+        if (
+            game["name"].lower()
+            == name.lower()
+        ):
+            print(
+                f"Бозӣ аллакай вуҷуд дорад: {name}"
+            )
+            return
+
+        if game["link"] == link:
+            print(
+                f"Link аллакай вуҷуд дорад: {link}"
+            )
+            return
+
+    # --------------------------------------
+    # ИЛОВА
+    # --------------------------------------
+
+    games.append(
+        {
+            "name": name,
+            "link": link
+        }
+    )
+
+    save_games(games)
+
+    print(
+        f"🎮 Бозии нав илова шуд: {name}"
+    )
+
+
+# ==========================================
+# CHANNEL POSTS
+# ==========================================
+
+@bot.channel_post_handler(
+    content_types=[
+        "text",
+        "photo"
+    ]
+)
+def channel_post(message):
+
+    print(
+        "📢 Channel post received"
+    )
+
+    add_game_from_channel(
+        message
+    )
 
 
 # ==========================================
 # START BOT
 # ==========================================
 
-print("🤖 Telegram Game Bot started!")
+print(
+    "🤖 Telegram Game Bot started!"
+)
 
 bot.infinity_polling(
     timeout=60,
