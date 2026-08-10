@@ -19,7 +19,7 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 # ==========================================
 
 CHANNELS = [
-    "@khamai_bozikhoi_mod"
+    "@khamai_bozikho"
 ]
 
 # Мисол:
