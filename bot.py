@@ -19,7 +19,7 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 # ==========================================
 
 CHANNELS = [
-    "https://t.me/khamai_bozikho"
+    "@khamai_bozikhoi_mod"
 ]
 
 # Мисол:
