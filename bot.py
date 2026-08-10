@@ -25,7 +25,7 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 #
 
 CHANNELS = [
-    "@YOUR_CHANNEL"
+    "https://t.me/khamai_bozikho"
 ]
 
 
